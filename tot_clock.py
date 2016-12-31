@@ -191,13 +191,15 @@ while not done:
             alpha=0
             last_bg_refresh=time.time()
             _state = forced_state if force_state else state
-            if _state==3: # sleeping
-                dir="./sleeping/*"
-            elif _state==1: # awake
-                dir="./awake/*"
-            else: # transitions
-                dir="./transitions/*"
-            dir=os.path.join(cur_dir,dir)
+            
+#             if _state==3: # sleeping
+#                 dir="./sleeping/*"
+#             elif _state==1: # awake
+#                 dir="./awake/*"
+#             else: # transitions
+#                 dir="./transitions/*"
+#            dir=os.path.join(cur_dir,dir)
+            dir="./images/*" # just use one directory now with color banners
             files=glob.glob(dir)                
             #print(files)
             #fname=os.path.join('sleeping',files[random.randint(0,len(files)-1)])
