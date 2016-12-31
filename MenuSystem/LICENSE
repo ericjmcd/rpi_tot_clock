@@ -1,0 +1,8 @@
+MenuSystem was downloaded from the PyGame site:
+http://pygame.org/project-MenuSystem-2031-.html
+
+which links to:
+Home Page: 	http://joel-murielle.perso.sfr.fr/
+Source: 	http://joel-murielle.perso.sfr.fr/MenuSystem.zip
+
+No License is listed related to this code.  Because my code doesn't really need a complex GUI/menu system, I may remove this dependency and make my own buttons in the future.  Until then, I'll leave this here.
