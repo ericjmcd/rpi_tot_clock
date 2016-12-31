@@ -10,6 +10,15 @@ pygame.init()
 
 DEBUG=False
 SONG_REPEATS=3
+SLEEPING_COLOR=pygame.Color(0,50,255,80) # blueish
+WAKING_COLOR=pygame.Color(0,150,255,80) # light blueish
+AWAKE_COLOR=pygame.Color(255,200,0,80) #yellowish
+BEDTIME_COLOR=pygame.Color(200,100,0,80) # orangish
+STATE_COLORS={0:WAKING_COLOR,
+              1:AWAKE_COLOR,
+              2:BEDTIME_COLOR,
+              3:SLEEPING_COLOR,
+              }
 
 cur_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -19,17 +28,62 @@ window_size=(800,640)
 #scr=pygame.display.set_mode(window_size,pygame.FULLSCREEN)
 scr=pygame.display.set_mode(window_size)
 
-#for i in dir(scr):
-#  print(i)
 window_size=scr.get_rect()[2:]
 
 def create_image(filename):
-    image=pygame.image.load(filename)
-    image=pygame.transform.scale(image, window_size)
-    image=image.convert()
+    # Convenience function to load image file into image object
+    try: 
+        image=pygame.image.load(filename)
+        image=pygame.transform.scale(image, window_size)
+        image=image.convert()
+    except:
+        print('Cannot load image: %s'%filename)
+        image=None
     return image
+
+def fill_gradient(surface, color, gradient, rect=None, vertical=True, forward=True):
+    """fill a surface with a gradient pattern
+    Parameters:
+    color -> starting color
+    gradient -> final color
+    rect -> area to fill; default is surface's rect
+    vertical -> True=vertical; False=horizontal
+    forward -> True=forward; False=reverse
     
-scr.fill((0,0,0))
+    Pygame recipe: http://www.pygame.org/wiki/GradientCode
+    """
+    if rect is None: rect = surface.get_rect()
+    x1,x2 = rect.left, rect.right
+    y1,y2 = rect.top, rect.bottom
+    if vertical: h = y2-y1
+    else:        h = x2-x1
+    if forward: a, b = color, gradient
+    else:       b, a = color, gradient
+    rate = (
+        float(b[0]-a[0])/h,
+        float(b[1]-a[1])/h,
+        float(b[2]-a[2])/h
+    )
+    fn_line = pygame.draw.line
+    if vertical:
+        for line in range(y1,y2):
+            color = (
+                min(max(a[0]+(rate[0]*(line-y1)),0),255),
+                min(max(a[1]+(rate[1]*(line-y1)),0),255),
+                min(max(a[2]+(rate[2]*(line-y1)),0),255)
+            )
+            fn_line(surface, color, (x1,line), (x2,line))
+    else:
+        for col in range(x1,x2):
+            color = (
+                min(max(a[0]+(rate[0]*(col-x1)),0),255),
+                min(max(a[1]+(rate[1]*(col-x1)),0),255),
+                min(max(a[2]+(rate[2]*(col-x1)),0),255)
+            )
+            fn_line(surface, color, (col,y1), (col,y2))
+
+    
+scr.fill((0,0,0)) # wipe screen (to black)
 bg=None
 scrrect = scr.get_rect()
 pygame.display.flip()
@@ -70,19 +124,31 @@ exit.set()
 
 done=False
 clock = pygame.time.Clock()
-TICK_MS=10
+FPS=10
 alpha=255
-BG_SWAP_DURATION_SECS=3
-alpha_delta=255.0/(BG_SWAP_DURATION_SECS*1000.0/TICK_MS)
+BG_SWAP_DURATION_SECS=3.0
+alpha_delta=255.0/(BG_SWAP_DURATION_SECS*FPS)
 last_motion = time.time()
 menu_hide_delay=3
 
-refresh_bg_delay=60
+refresh_bg_delay=10
 last_bg_refresh=time.time()
 state=0
 force_state=False # for manual
 forced_state=0
 one_shot_bg = True
+
+def add_top_bot_colors(screen,color):
+    window_size=screen.get_rect()[2:]
+    height=100
+    rect_size=(window_size[0],height)
+    BLACK=(0,0,0)
+    surf = pygame.Surface(rect_size)
+    fill_gradient(surf, color,BLACK)
+    screen.blit(surf, (0, 0), special_flags=pygame.BLEND_RGB_ADD)
+    surf = pygame.Surface(rect_size)
+    fill_gradient(surf, color,BLACK,forward=False)
+    screen.blit(surf, (0, window_size[1]-rect_size[1]), special_flags=pygame.BLEND_RGB_ADD)     
 
 if DEBUG:
     now=datetime.now()
@@ -95,16 +161,16 @@ while not done:
     # FIXME
     # Hack to get the menus to work since they don't play well with
     # blitting the background
-    clock.tick(TICK_MS)    
-    show_menus=time.time()-last_motion<menu_hide_delay    
-    pygame.mouse.set_visible(show_menus)
+    clock.tick(FPS)    
+    show_menus=time.time()-last_motion<menu_hide_delay # hide after no input    
+    pygame.mouse.set_visible(show_menus) # show menus first
     if not show_menus or one_shot_bg: # don't update bg if menus are up
         now=datetime.now().time()
         next_state=len(state_times)-1 # default if now>all
         for i in range(len(state_times)):
             if now<state_times[i]:
                 next_state=(i-1)%len(state_times)
-                break
+                break        
         new_state=False
         if next_state != state:
             print 'Cur state',state,'New state',next_state
@@ -119,7 +185,6 @@ while not done:
         audio_choice.draw()
         song_choice.draw()
     else:
-        #if one_shot_bg: print('oneshot',state,next_state)
         if bg !=None:
             scr.blit(bg,(0,0))
         if (alpha==255 and time.time()-last_bg_refresh>refresh_bg_delay) or new_state or one_shot_bg:
@@ -148,8 +213,10 @@ while not done:
             bg=bg2
         bg2.set_alpha(int(alpha))
         scr.blit(bg2,(0,0))
-        one_shot_bg=False       
-
+        one_shot_bg=False
+        bar_color = STATE_COLORS[state]
+        add_top_bot_colors(scr,bar_color)
+                             
     # Display time
     dt_now = datetime.now()
     time_str='%02d:%02d:%02d'%(dt_now.hour%12,dt_now.minute,dt_now.second)
