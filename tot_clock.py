@@ -198,8 +198,8 @@ while not done:
 #                 dir="./awake/*"
 #             else: # transitions
 #                 dir="./transitions/*"
-#            dir=os.path.join(cur_dir,dir)
             dir="./images/*" # just use one directory now with color banners
+            dir=os.path.join(cur_dir,dir)
             files=glob.glob(dir)                
             #print(files)
             #fname=os.path.join('sleeping',files[random.randint(0,len(files)-1)])
